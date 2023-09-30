@@ -1,6 +1,9 @@
 package com.example.adivinaartistas
 
+import android.content.Intent
 import android.graphics.Color
+import android.media.AudioManager
+import android.media.SoundPool
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.View
@@ -9,7 +12,9 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.core.view.MarginLayoutParamsCompat
 import androidx.core.view.get
+import androidx.core.view.marginTop
 import com.airbnb.lottie.LottieAnimationView
 import com.github.javafaker.Faker
 import com.google.android.flexbox.FlexboxLayout
@@ -17,6 +22,11 @@ import kotlin.random.Random
 
 
 class MainActivity : AppCompatActivity() {
+
+    private var sp: SoundPool? = null
+    private var click = 0
+    private var victoria = 0
+    private var derrota = 0
 
     private lateinit var txtPregunta: TextView
     private var respuesta: String = ""
@@ -33,8 +43,17 @@ class MainActivity : AppCompatActivity() {
     private lateinit var txtMsjResultado: TextView
     private lateinit var txtMsjRespuestaCorrecta: TextView
 
+    //boton para reiniciar
+    private lateinit var btnReinicio: Button
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        //carga los sonidos desde la carpeta raw
+        sp = SoundPool(1, AudioManager.STREAM_MUSIC, 1)
+        click = sp?.load(this, R.raw.click, 1)!!
+        victoria = sp?.load(this, R.raw.victoria, 1)!!
+        derrota = sp?.load(this, R.raw.derrota, 1)!!
 
         //muestra el spash antes de que se le asigne a esta pantalla su recurso de diseño
         installSplashScreen()
@@ -51,6 +70,7 @@ class MainActivity : AppCompatActivity() {
         lottieResult = findViewById(R.id.animation_view_resultado)
         txtMsjResultado = findViewById(R.id.txtMsjResultado)
         txtMsjRespuestaCorrecta = findViewById(R.id.txtMsjRespuestaCorrecta)
+        btnReinicio = findViewById(R.id.btnReinicio)
 
         /*
         * Finalmente en el método onCreate debemos hacer el llamado a todas esas funciones que le dan el
@@ -117,7 +137,7 @@ class MainActivity : AppCompatActivity() {
                 FlexboxLayout.LayoutParams.WRAP_CONTENT,
                 FlexboxLayout.LayoutParams.WRAP_CONTENT
             )
-
+            btnLetra.setTextColor(Color.WHITE)
             layoutParams.setMargins(5, 5, 5, 5)
             btnLetra.layoutParams = layoutParams
             vista.addView(btnLetra)
@@ -170,11 +190,14 @@ class MainActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(
                     applicationContext, "No es una letra valida",
-                    Toast.LENGTH_SHORT).show()
+                    Toast.LENGTH_SHORT
+                ).show()
                 btnClicked.setBackgroundColor(Color.RED)
                 btnClicked.isEnabled = false
                 btnClicked.setTextColor(Color.WHITE)
             }
+
+            reproduceSoundPool()
             intentosHechos++
 
             txtCantIntentos.text = "$intentosHechos/$intentosPermitidos"
@@ -194,18 +217,37 @@ class MainActivity : AppCompatActivity() {
             //si gano o perdio
             if (indicesOcupados.size == respuesta.length) {
                 lottieResult.setAnimation(R.raw.win)
+                txtMsjResultado.setTextColor(Color.GREEN)
+                txtMsjResultado.textSize = 55f
                 txtMsjResultado.text = "Felicidades!"
+                sonidoVictoria()
             } else {
                 lottieResult.setAnimation(R.raw.lost)
+                txtMsjResultado.setTextColor(Color.RED)
+                txtMsjResultado.textSize = 55f
                 txtMsjResultado.text = "Perdiste :("
+                sonidoDerrota()
             }
 
+            txtMsjRespuestaCorrecta.textSize = 20f
             txtMsjRespuestaCorrecta.setText("La respuesta correcta es: $respuesta")
+
+            //botn
+
+            btnReinicio.setOnClickListener {
+
+                //basicamente abre la pantalla de nuevo haciendo un salto de pagina a esta misma
+                val intent: Intent = Intent(this, MainActivity:: class.java)
+                startActivity(intent)
+            }
 
             //despues de configurar la vista ponerlas como visibles
             txtMsjResultado.visibility = View.VISIBLE
             lottieResult.visibility = View.VISIBLE
             txtMsjRespuestaCorrecta.visibility = View.VISIBLE
+
+            //bton de reionicio
+            btnReinicio.visibility = Button.VISIBLE
 
             //ocultar los que no se deben mostrar
             flexResponse.visibility = View.GONE
@@ -217,4 +259,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun reproduceSoundPool() {
+        sp?.play(click, 1f, 1f, 1, 0, 1f)
+    }
+
+    fun sonidoVictoria() {
+        sp?.play(victoria, 1f, 1f, 1, 0, 1f)
+    }
+
+    fun sonidoDerrota() {
+        sp?.play(derrota, 1f, 1f, 1, 0, 1f)
+    }
 }
